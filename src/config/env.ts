@@ -1,10 +1,6 @@
 // src/config/env.ts
 import { z } from "zod";
 
-// Bun v1.1+ は自動で .env を読む
-// import dotenv from 'dotenv';
-// dotenv.config();
-
 const envSchema = z.object({
   PORT: z.coerce.number().default(3000),
   // Zoom
@@ -21,12 +17,39 @@ const envSchema = z.object({
   SALESFORCE_CLIENT_SECRET: z.string().min(1),
   SALESFORCE_USERNAME: z.string().min(1),
   SALESFORCE_PASSWORD: z.string().min(1), // パスワード + セキュリティトークン
-  // アプリケーション固有設定
-  SALESFORCE_ZOOM_UUID_FIELD: z.string().default("ZoomMeetingUUID__c"), // SF EventのZoom UUIDカスタム項目名
-  SALESFORCE_RECORDING_URL_FIELD: z.string().default("ZoomRecordingURL__c"), // SF Eventの録画URLカスタム項目名
-  SALESFORCE_TRANSCRIPT_FIELD: z.string().optional(), // SF Eventのトランスクリプト項目名 (任意)
+
+  // --- Application Specific Settings ---
+  // Regular expression to extract Salesforce Opportunity ID from Zoom meeting topic
+  // Example: Matches "[Opp-006...]" and captures the 15 or 18 character ID
+  SALESFORCE_OPPORTUNITY_ID_REGEX: z
+    .string()
+    .default("^\\[Opp-([a-zA-Z0-9]{15}|[a-zA-Z0-9]{18})\\]"), // 正規表現を調整してください
+
+  // Salesforce Event fields for the new event
+  SALESFORCE_EVENT_SUBJECT_PREFIX: z.string().default("[Zoom録画] "), // 新規Event件名の接頭辞
+  SALESFORCE_EVENT_DESCRIPTION_TEMPLATE: z
+    .string()
+    .default(
+      "Zoom録画が完了しました。\n録画リンク: {{recordingUrl}}\n\n文字起こし:\n{{transcript}}"
+    ), // 説明テンプレート
+  SALESFORCE_EVENT_DURATION_MINUTES: z.coerce.number().default(60), // Zoomのdurationがない場合のデフォルト時間（分）
+
+  // Custom field on Salesforce Event to store Zoom Meeting UUID (for deduplication)
+  SALESFORCE_EVENT_ZOOM_UUID_FIELD: z.string().default("ZoomMeetingUUID__c"), // EventのZoom UUIDカスタム項目名
 });
 
 export const env = envSchema.parse(process.env);
 
 console.log("Environment variables loaded successfully.");
+// 正規表現のテスト用（開発時）
+try {
+  new RegExp(env.SALESFORCE_OPPORTUNITY_ID_REGEX);
+  console.log("Salesforce Opportunity ID Regex is valid.");
+} catch (e) {
+  console.error(
+    "Invalid Salesforce Opportunity ID Regex in .env:",
+    env.SALESFORCE_OPPORTUNITY_ID_REGEX,
+    e
+  );
+  process.exit(1); // エラーがあれば起動を停止
+}
