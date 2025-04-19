@@ -1,23 +1,22 @@
-// src/services/salesforceService.ts
-import { Connection, SuccessResult, ErrorResult, Record } from "jsforce"; // 型を追加
+import { SaveResult, SaveError } from "jsforce";
 import { getSalesforceConnection } from "../lib/salesforceAuth";
 import { env } from "../config/env";
 
-interface Opportunity extends Record<any> {
-  // 必要に応じて型を定義
+// Opportunity インターフェース (変更なし)
+interface Opportunity {
   Id: string;
   Name: string;
-  // 他に必要なフィールド
+  [key: string]: any;
 }
 
 interface EventData {
   Subject: string;
-  StartDateTime: string; // ISO 8601 format (YYYY-MM-DDTHH:mm:ss.sssZ)
-  EndDateTime: string; // ISO 8601 format
+  StartDateTime: string;
+  EndDateTime: string;
   Description?: string;
-  WhatId?: string; // Related Opportunity ID
-  OwnerId?: string; // Salesforce User ID (Optional but recommended)
-  [key: string]: any; // Allow custom fields like ZoomMeetingUUID__c
+  WhatId?: string;
+  OwnerId?: string;
+  [key: string]: any;
 }
 
 /**
@@ -29,32 +28,21 @@ export async function findOpportunityById(
   opportunityId: string
 ): Promise<Opportunity | null> {
   if (!opportunityId || opportunityId.length < 15) {
-    // 簡単なID形式チェック
     console.warn(`Invalid Opportunity ID format provided: ${opportunityId}`);
     return null;
   }
   const conn = await getSalesforceConnection();
   try {
-    // SOQLインジェクション対策のため、findメソッドを使用する方がより安全
-    // または、IDをエスケープする処理を入れる
-    const escapedOpportunityId = opportunityId.replace(/'/g, "\\'"); // 簡単なエスケープ
-    // SOQLインジェクションのリスクがあるため、通常は find() を推奨
-    // const query = `SELECT Id, Name FROM Opportunity WHERE Id = '${escapedOpportunityId}' LIMIT 1`;
-    // console.log(`Executing SOQL: ${query}`);
-    // const result = await conn.query<Opportunity>(query);
-
     console.log(`Finding Opportunity by ID: ${opportunityId}`);
-    const result = await conn.sobject("Opportunity").findOne<Opportunity>(
-      { Id: opportunityId }, // conditions
-      ["Id", "Name"] // fields to retrieve
-    );
+    const result = await conn
+      .sobject("Opportunity")
+      .findOne<Opportunity>({ Id: opportunityId }, ["Id", "Name"]);
 
     if (result) {
       console.log(
         `Found Salesforce Opportunity: ${result.Name} (ID: ${result.Id})`
       );
-      // @ts-ignore // jsforce の findOne の型が Record<any> | null なのでキャストする
-      return result as Opportunity;
+      return result;
     } else {
       console.warn(`No Salesforce Opportunity found for ID: ${opportunityId}`);
       return null;
@@ -83,15 +71,17 @@ export async function findEventByZoomUuid(
     console.warn(
       "SALESFORCE_EVENT_ZOOM_UUID_FIELD is not defined. Cannot perform deduplication check."
     );
-    return null; // 設定がない場合はチェック不可
+    return null;
   }
 
   try {
-    // UUIDもインジェクション対策が必要
     const escapedZoomUuid = zoomMeetingUuid.replace(/'/g, "\\'");
+    interface EventQueryResult {
+      Id: string;
+    }
     const query = `SELECT Id FROM Event WHERE ${zoomUuidField} = '${escapedZoomUuid}' LIMIT 1`;
     console.log(`Executing Deduplication SOQL: ${query}`);
-    const result = await conn.query<{ Id: string }>(query);
+    const result = await conn.query<EventQueryResult>(query);
 
     if (result.totalSize > 0 && result.records.length > 0) {
       const eventId = result.records[0].Id;
@@ -100,7 +90,6 @@ export async function findEventByZoomUuid(
       );
       return eventId;
     } else {
-      // console.log(`No existing Salesforce Event found for Zoom UUID: ${zoomMeetingUuid}`);
       return null;
     }
   } catch (err: any) {
@@ -108,21 +97,20 @@ export async function findEventByZoomUuid(
       `Error finding Salesforce Event by Zoom UUID ${zoomMeetingUuid} for deduplication:`,
       err.message
     );
-    return null; // エラー時はnullを返し、重複作成を許容しないようにハンドラ側で考慮が必要かも
+    return null;
   }
 }
 
 /**
  * Salesforce に新しい Event レコードを作成する
  * @param eventData 作成するイベントデータ
- * @returns 作成結果 (SuccessResult or ErrorResult)
+ * @returns 作成結果 (SaveResult)
  */
 export async function createSalesforceEvent(
   eventData: EventData
-): Promise<SuccessResult | ErrorResult> {
+): Promise<SaveResult> {
   const conn = await getSalesforceConnection();
 
-  // Eventオブジェクトの必須項目チェック (最低限)
   if (
     !eventData.Subject ||
     !eventData.StartDateTime ||
@@ -131,38 +119,63 @@ export async function createSalesforceEvent(
     const errorMessage =
       "Missing required fields for Event creation (Subject, StartDateTime, EndDateTime).";
     console.error(errorMessage, eventData);
-    return { success: false, errors: [new Error(errorMessage)], id: null };
+    // SaveError 型のエラーオブジェクトを返す
+    return {
+      success: false,
+      errors: [
+        {
+          message: errorMessage,
+          errorCode: "REQUIRED_FIELD_MISSING",
+          fields: ["Subject", "StartDateTime", "EndDateTime"],
+        } as SaveError,
+      ],
+      id: undefined,
+    };
   }
 
-  // Zoom UUIDフィールド名が設定されていれば、eventDataに追加
   if (
     env.SALESFORCE_EVENT_ZOOM_UUID_FIELD &&
-    eventData[env.SALESFORCE_EVENT_ZOOM_UUID_FIELD]
+    !eventData[env.SALESFORCE_EVENT_ZOOM_UUID_FIELD]
   ) {
-    // Do nothing, already set
-  } else if (env.SALESFORCE_EVENT_ZOOM_UUID_FIELD) {
     console.warn(
       `Zoom Meeting UUID field '${env.SALESFORCE_EVENT_ZOOM_UUID_FIELD}' is configured but no value provided in eventData.`
     );
-    // eventData[env.SALESFORCE_EVENT_ZOOM_UUID_FIELD] = 'UUID_NOT_PROVIDED'; // Or handle differently
   }
 
   console.log(
     `Creating new Salesforce Event: Subject='${eventData.Subject}', WhatId='${eventData.WhatId}'`
   );
   try {
-    const result = await conn.sobject("Event").create(eventData);
+    // create メソッドの戻り値の型を any または SaveResult として扱う
+    const result: SaveResult = await conn.sobject("Event").create(eventData);
     if (result.success) {
       console.log(`Successfully created Salesforce Event ID: ${result.id}`);
     } else {
-      console.error("Failed to create Salesforce Event:", result.errors);
+      // errors が配列であることを保証する (jsforce のバージョンによる差異吸収)
+      const errors = Array.isArray(result.errors)
+        ? result.errors
+        : [result.errors];
+      const errorMessages = errors
+        .map((e) => e?.message || JSON.stringify(e))
+        .join(", ");
+      console.error("Failed to create Salesforce Event:", errorMessages);
+      // 必要なら result.errors を整形して返す
+      return { ...result, errors: errors };
     }
+    // jsforce の結果オブジェクトが SaveResult と互換性があればそのまま返す
     return result;
   } catch (err: any) {
     console.error("Error creating Salesforce Event:", err.message);
-    return { success: false, errors: [err], id: null }; // jsforce v1.x style error
+    return {
+      success: false,
+      errors: [
+        {
+          message: err.message,
+          errorCode: "UNKNOWN_ERROR",
+          fields: [],
+        } as SaveError,
+      ],
+      id: undefined,
+    };
   }
 }
-
-// updateSalesforceEvent 関数は不要になったので削除
-// export async function updateSalesforceEvent(...) { ... }
