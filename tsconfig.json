@@ -1,0 +1,18 @@
+// tsconfig.json (例)
+{
+    "compilerOptions": {
+      "target": "ESNext",
+      "module": "ESNext",
+      "moduleResolution": "bundler", // Bun推奨
+      "strict": true,
+      "esModuleInterop": true,
+      "skipLibCheck": true,
+      "forceConsistentCasingInFileNames": true,
+      "outDir": "./dist", // ビルドする場合
+      "jsx": "react-jsx", // Honoが必要とする場合がある
+      "jsxImportSource": "hono/jsx",
+       "types": ["@types/bun"] // Bunの型定義を読み込む
+    },
+    "include": ["src/**/*.ts"], // コンパイル対象
+    "exclude": ["node_modules"]
+  }
