@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { logger } from "hono/logger";
 import { env } from "./config/env";
 import webhookRouter from "./routes/webhook";
+import apiRouter from "./routes/api";
 
 const app = new Hono();
 
@@ -10,8 +11,11 @@ const app = new Hono();
 app.use("*", logger());
 
 // ルート定義
-app.get("/", (c) => c.text("Zoom-Salesforce Integration App is running!"));
+app.get("/status", (c) =>
+  c.text("Zoom-Salesforce Integration App is running!")
+);
 app.route("/webhook", webhookRouter); // /webhook プレフィックスで webhookRouter を適用
+app.route("/api", apiRouter); // /api プレフィックスで apiRouter を適用
 
 // 404 Not Found
 app.notFound((c) => {

@@ -40,6 +40,35 @@ async function downloadWithAuth(
 }
 
 /**
+ * ミーティングの詳細情報を取得する
+ * @param meetingUuid ミーティングUUID
+ * @returns ミーティングの詳細情報
+ */
+export async function getMeetingDetails(meetingUuid: string): Promise<any> {
+  const accessToken = await getZoomAccessToken();
+  const url = `${ZOOM_API_BASE_URL}/meetings/${meetingUuid}`;
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(
+      `Failed to get meeting details for ${meetingUuid}:`,
+      response.status,
+      errorText
+    );
+    throw new Error(`Failed to get meeting details: ${response.status}`);
+  }
+  return await response.json();
+}
+
+/**
  * ミーティングの録画詳細情報を取得する
  * @param meetingUuid ミーティングUUID
  */
@@ -63,6 +92,35 @@ export async function getMeetingRecordings(meetingUuid: string): Promise<any> {
       errorText
     );
     throw new Error(`Failed to get recordings: ${response.status}`);
+  }
+  return await response.json();
+}
+
+/**
+ * ミーティングのサマリー情報を取得する
+ * @param meetingUuid ミーティングUUID
+ * @returns ミーティングのサマリー情報
+ */
+export async function getMeetingSummary(meetingUuid: string): Promise<any> {
+  const accessToken = await getZoomAccessToken();
+  const url = `${ZOOM_API_BASE_URL}/meetings/${meetingUuid}/summary`;
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(
+      `Failed to get meeting summary for ${meetingUuid}:`,
+      response.status,
+      errorText
+    );
+    throw new Error(`Failed to get meeting summary: ${response.status}`);
   }
   return await response.json();
 }

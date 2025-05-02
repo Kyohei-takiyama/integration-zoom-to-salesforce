@@ -175,3 +175,35 @@ export interface ZoomMeeting {
     auto_recording: string;
   };
 }
+
+// Zoom API Meeting Summary情報
+export interface ZoomMeetingSummary {
+  uuid: string;
+  id: number;
+  host_id: string;
+  topic: string;
+  type: number;
+  start_time: string;
+  duration: number;
+  timezone: string;
+  created_at: string;
+  join_url: string;
+  agenda: string;
+  summary: {
+    total_minutes: number;
+    issue_count: number;
+    participant_count: number;
+    chapters: Array<{
+      title: string;
+      start_time: string;
+      end_time: string;
+      summary: string;
+    }>;
+    timeline: Array<{
+      title: string;
+      start_time: string;
+      end_time: string;
+    }>;
+    summary_text: string;
+  };
+}
