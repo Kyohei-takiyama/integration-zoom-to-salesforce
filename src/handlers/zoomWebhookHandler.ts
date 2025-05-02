@@ -7,6 +7,7 @@ import {
   findOpportunityById,
   createSalesforceEvent,
   findEventByZoomUuid,
+  EventData,
 } from "../services/salesforceService";
 import { formatISO, addMinutes } from "date-fns"; // 日付操作ライブラリの例
 
@@ -65,9 +66,9 @@ function calculateEndDateTime(
 
 export async function handleZoomWebhook(c: Context) {
   const payload = c.get("parsedBody");
+  console.log("Parsed Zoom Webhook payload:", payload);
 
   if (!payload) {
-    // ... (エラーハンドリングは前のコード例と同様) ...
     return c.json({ message: "Missing parsed body" }, 500);
   }
 

@@ -9,7 +9,7 @@ interface Opportunity {
   [key: string]: any;
 }
 
-interface EventData {
+export interface EventData {
   Subject: string;
   StartDateTime: string;
   EndDateTime: string;
