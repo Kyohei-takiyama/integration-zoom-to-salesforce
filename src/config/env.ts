@@ -30,12 +30,18 @@ const envSchema = z.object({
   SALESFORCE_EVENT_DESCRIPTION_TEMPLATE: z
     .string()
     .default(
-      "Zoom録画が完了しました。\n録画リンク: {{recordingUrl}}\n\n文字起こし:\n{{transcript}}"
+      "Zoom録画が完了しました。\n録画リンク: {{recordingUrl}}\n\n文字起こし:\n{{transcript}}\n\nミーティングサマリー:\n{{meetingSummary}}"
     ), // 説明テンプレート
   SALESFORCE_EVENT_DURATION_MINUTES: z.coerce.number().default(60), // Zoomのdurationがない場合のデフォルト時間（分）
 
   // Custom field on Salesforce Event to store Zoom Meeting UUID (for deduplication)
   SALESFORCE_EVENT_ZOOM_UUID_FIELD: z.string().default("ZoommeetingId__c"), // EventのZoom UUIDカスタム項目名
+
+  // Custom field on Salesforce Event to store Zoom Meeting Summary
+  SALESFORCE_EVENT_MEETING_SUMMARY_FIELD: z
+    .string()
+    .default("ZoomMeetingSummary__c")
+    .optional(), // EventのZoomミーティングサマリーカスタム項目名
 });
 
 export const env = envSchema.parse(process.env);

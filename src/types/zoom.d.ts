@@ -135,13 +135,69 @@ export interface ZoomMeetingEndedEvent extends ZoomWebhookEvent {
   };
 }
 
+// 録画完了イベント
+export interface ZoomRecordingCompletedEvent extends ZoomWebhookEvent {
+  event: "recording.completed";
+  payload: {
+    account_id: string;
+    object: {
+      uuid: string;
+      id: string;
+      host_id: string;
+      topic: string;
+      type: number;
+      start_time: string;
+      duration: number;
+      timezone: string;
+      host_email: string;
+      total_size: number;
+      recording_count: number;
+      share_url: string;
+      recording_play_passcode?: string;
+      recording_files: Array<{
+        id: string;
+        meeting_id: string;
+        recording_start: string;
+        recording_end: string;
+        file_type: string;
+        file_size: number;
+        play_url: string;
+        download_url: string;
+        status: string;
+        recording_type: string;
+      }>;
+    };
+  };
+}
+
+// ミーティングサマリー完了イベント
+export interface ZoomMeetingSummaryCompletedEvent extends ZoomWebhookEvent {
+  event: "meeting.summary_completed";
+  payload: {
+    account_id: string;
+    object: {
+      uuid: string;
+      id: string;
+      host_id: string;
+      topic: string;
+      type: number;
+      start_time: string;
+      duration: number;
+      timezone: string;
+      host_email: string;
+    };
+  };
+}
+
 // サポートするZoom Webhookイベントの型
 export type SupportedZoomWebhookEvent =
   | ZoomMeetingCreatedEvent
   | ZoomMeetingUpdatedEvent
   | ZoomMeetingDeletedEvent
   | ZoomMeetingStartedEvent
-  | ZoomMeetingEndedEvent;
+  | ZoomMeetingEndedEvent
+  | ZoomRecordingCompletedEvent
+  | ZoomMeetingSummaryCompletedEvent;
 
 // Zoom API認証レスポンス
 export interface ZoomAuthResponse {
