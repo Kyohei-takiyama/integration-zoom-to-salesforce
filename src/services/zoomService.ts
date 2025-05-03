@@ -1,5 +1,6 @@
 // src/services/zoomService.ts
 import { getZoomAccessToken } from "../lib/zoomAuth";
+import axios from "axios";
 
 const ZOOM_API_BASE_URL = "https://api.zoom.us/v2";
 
@@ -11,7 +12,7 @@ const ZOOM_API_BASE_URL = "https://api.zoom.us/v2";
 async function downloadWithAuth(
   downloadUrl: string,
   tokenType: "oauth" = "oauth"
-): Promise<Response> {
+): Promise<any> {
   const accessToken = await getZoomAccessToken(); // OAuthトークンを取得
 
   // download_urlにアクセストークンを付与してアクセス
@@ -19,24 +20,26 @@ async function downloadWithAuth(
     downloadUrl.includes("?") ? "&" : "?"
   }access_token=${accessToken}`;
 
-  const response = await fetch(urlWithToken, {
-    method: "GET",
-    headers: {
-      // OAuthトークンを使う場合、通常Authorizationヘッダーは不要だが念のため
-      // 'Authorization': `Bearer ${accessToken}`,
-    },
-  });
+  try {
+    const response = await axios.get(urlWithToken, {
+      responseType: "text",
+      headers: {
+        // OAuthトークンを使う場合、通常Authorizationヘッダーは不要だが念のため
+        // 'Authorization': `Bearer ${accessToken}`,
+      },
+    });
 
-  if (!response.ok) {
-    const errorText = await response.text();
+    return response;
+  } catch (error: any) {
     console.error(
       `Failed to download from ${downloadUrl}:`,
-      response.status,
-      errorText
+      error.response?.status,
+      error.response?.data
     );
-    throw new Error(`Failed to download resource: ${response.status}`);
+    throw new Error(
+      `Failed to download resource: ${error.response?.status || error.message}`
+    );
   }
-  return response;
 }
 
 /**
@@ -48,24 +51,27 @@ export async function getMeetingDetails(meetingUuid: string): Promise<any> {
   const accessToken = await getZoomAccessToken();
   const url = `${ZOOM_API_BASE_URL}/meetings/${meetingUuid}`;
 
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-  });
+  try {
+    const response = await axios.get(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    });
 
-  if (!response.ok) {
-    const errorText = await response.text();
+    return response.data;
+  } catch (error: any) {
     console.error(
       `Failed to get meeting details for ${meetingUuid}:`,
-      response.status,
-      errorText
+      error.response?.status,
+      error.response?.data
     );
-    throw new Error(`Failed to get meeting details: ${response.status}`);
+    throw new Error(
+      `Failed to get meeting details: ${
+        error.response?.status || error.message
+      }`
+    );
   }
-  return await response.json();
 }
 
 /**
@@ -76,24 +82,25 @@ export async function getMeetingRecordings(meetingUuid: string): Promise<any> {
   const accessToken = await getZoomAccessToken();
   const url = `${ZOOM_API_BASE_URL}/meetings/${meetingUuid}/recordings`;
 
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-  });
+  try {
+    const response = await axios.get(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    });
 
-  if (!response.ok) {
-    const errorText = await response.text();
+    return response.data;
+  } catch (error: any) {
     console.error(
       `Failed to get recordings for meeting ${meetingUuid}:`,
-      response.status,
-      errorText
+      error.response?.status,
+      error.response?.data
     );
-    throw new Error(`Failed to get recordings: ${response.status}`);
+    throw new Error(
+      `Failed to get recordings: ${error.response?.status || error.message}`
+    );
   }
-  return await response.json();
 }
 
 /**
@@ -105,24 +112,27 @@ export async function getMeetingSummary(meetingUuid: string): Promise<any> {
   const accessToken = await getZoomAccessToken();
   const url = `${ZOOM_API_BASE_URL}/meetings/${meetingUuid}/meeting_summary`;
 
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-  });
+  try {
+    const response = await axios.get(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    });
 
-  if (!response.ok) {
-    const errorText = await response.text();
+    return response.data;
+  } catch (error: any) {
     console.error(
       `Failed to get meeting summary for ${meetingUuid}:`,
-      response.status,
-      errorText
+      error.response?.status,
+      error.response?.data
     );
-    throw new Error(`Failed to get meeting summary: ${response.status}`);
+    throw new Error(
+      `Failed to get meeting summary: ${
+        error.response?.status || error.message
+      }`
+    );
   }
-  return await response.json();
 }
 
 /**
@@ -134,7 +144,7 @@ export async function downloadTranscriptText(
 ): Promise<string> {
   console.log(`Downloading transcript from: ${transcriptDownloadUrl}`);
   const response = await downloadWithAuth(transcriptDownloadUrl);
-  const vttContent = await response.text();
+  const vttContent = response.data;
 
   // VTT形式からテキスト部分のみを抽出する簡単な処理
   const lines = vttContent.split("\n");
@@ -185,24 +195,25 @@ export async function getUserMeetings(
   const accessToken = await getZoomAccessToken();
   const url = `${ZOOM_API_BASE_URL}/users/${userId}/meetings?type=${type}&page_size=${pageSize}&page_number=${pageNumber}`;
 
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-  });
+  try {
+    const response = await axios.get(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    });
 
-  if (!response.ok) {
-    const errorText = await response.text();
+    return response.data;
+  } catch (error: any) {
     console.error(
       `Failed to get meetings for user ${userId}:`,
-      response.status,
-      errorText
+      error.response?.status,
+      error.response?.data
     );
-    throw new Error(`Failed to get user meetings: ${response.status}`);
+    throw new Error(
+      `Failed to get user meetings: ${error.response?.status || error.message}`
+    );
   }
-  return await response.json();
 }
 
 /**
@@ -219,22 +230,25 @@ export async function getPastMeetingDetails(meetingUuid: string): Promise<any> {
   const accessToken = await getZoomAccessToken();
   const url = `${ZOOM_API_BASE_URL}/past_meetings/${meetingUuid}`;
 
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-  });
+  try {
+    const response = await axios.get(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    });
 
-  if (!response.ok) {
-    const errorText = await response.text();
+    return response.data;
+  } catch (error: any) {
     console.error(
       `Failed to get past meeting details for ${meetingUuid}:`,
-      response.status,
-      errorText
+      error.response?.status,
+      error.response?.data
     );
-    throw new Error(`Failed to get past meeting details: ${response.status}`);
+    throw new Error(
+      `Failed to get past meeting details: ${
+        error.response?.status || error.message
+      }`
+    );
   }
-  return await response.json();
 }

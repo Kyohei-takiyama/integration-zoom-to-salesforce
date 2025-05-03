@@ -6,6 +6,7 @@ import {
   getUserMeetings,
   getPastMeetingDetails,
 } from "../services/zoomService";
+import { getSalesforceToken } from "../lib/salesforceAuth";
 
 const apiRouter = new Hono();
 
@@ -133,6 +134,32 @@ apiRouter.get("/past_meetings/:meetingId", async (c) => {
     console.error("Error fetching past meeting details:", error);
     return c.json(
       { error: error.message || "Failed to fetch past meeting details" },
+      500
+    );
+  }
+});
+
+/**
+ * Salesforceのアクセストークンを取得するエンドポイント
+ * GET /api/salesforce/token
+ *
+ * クライアントクレデンシャルフローを使用してSalesforceのアクセストークンを取得します
+ * 返却値には以下の情報が含まれます：
+ * - access_token: アクセストークン
+ * - instance_url: SalesforceインスタンスのURL
+ * - token_type: トークンタイプ（通常は"Bearer"）
+ * - expires_in: トークンの有効期限（秒）
+ * - expires_at: トークンの有効期限（UNIXタイムスタンプ、ミリ秒）
+ */
+apiRouter.get("/salesforce/token", async (c) => {
+  try {
+    console.log("Fetching Salesforce access token");
+    const tokenInfo = await getSalesforceToken();
+    return c.json(tokenInfo);
+  } catch (error: any) {
+    console.error("Error fetching Salesforce token:", error);
+    return c.json(
+      { error: error.message || "Failed to fetch Salesforce token" },
       500
     );
   }

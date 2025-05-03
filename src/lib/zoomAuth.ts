@@ -1,5 +1,6 @@
 // src/lib/zoomAuth.ts
 import { env } from "../config/env";
+import axios from "axios";
 
 let zoomAccessToken: string | null = null;
 let tokenExpiresAt: number | null = null;
@@ -18,26 +19,30 @@ async function fetchNewZoomToken(): Promise<string> {
   ).toString("base64");
 
   console.log("Fetching new Zoom access token...");
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${credentials}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-  });
+  try {
+    const response = await axios.post(url, null, {
+      headers: {
+        Authorization: `Basic ${credentials}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+    });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("Failed to fetch Zoom token:", response.status, errorText);
-    throw new Error(`Failed to fetch Zoom token: ${response.status}`);
+    const data = response.data as ZoomTokenResponse;
+    zoomAccessToken = data.access_token;
+    // 有効期限少し前に切れるように設定 (例: 5分前)
+    tokenExpiresAt = Date.now() + (data.expires_in - 300) * 1000;
+    console.log("Successfully fetched new Zoom access token.");
+    return zoomAccessToken;
+  } catch (error: any) {
+    console.error(
+      "Failed to fetch Zoom token:",
+      error.response?.status,
+      error.response?.data
+    );
+    throw new Error(
+      `Failed to fetch Zoom token: ${error.response?.status || error.message}`
+    );
   }
-
-  const data = (await response.json()) as ZoomTokenResponse;
-  zoomAccessToken = data.access_token;
-  // 有効期限少し前に切れるように設定 (例: 5分前)
-  tokenExpiresAt = Date.now() + (data.expires_in - 300) * 1000;
-  console.log("Successfully fetched new Zoom access token.");
-  return zoomAccessToken;
 }
 
 export async function getZoomAccessToken(): Promise<string> {

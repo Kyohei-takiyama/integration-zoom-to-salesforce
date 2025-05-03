@@ -9,14 +9,9 @@ const envSchema = z.object({
   ZOOM_CLIENT_ID: z.string().min(1),
   ZOOM_CLIENT_SECRET: z.string().min(1),
   // Salesforce
-  SALESFORCE_LOGIN_URL: z
-    .string()
-    .url()
-    .default("https://login.salesforce.com"),
+  SALESFORCE_BASE_URL: z.string().url().default("https://login.salesforce.com"),
   SALESFORCE_CLIENT_ID: z.string().min(1),
   SALESFORCE_CLIENT_SECRET: z.string().min(1),
-  SALESFORCE_USERNAME: z.string().min(1),
-  SALESFORCE_PASSWORD: z.string().min(1), // パスワード + セキュリティトークン
 
   // --- Application Specific Settings ---
   // Regular expression to extract Salesforce Opportunity ID from Zoom meeting topic
@@ -35,13 +30,13 @@ const envSchema = z.object({
   SALESFORCE_EVENT_DURATION_MINUTES: z.coerce.number().default(60), // Zoomのdurationがない場合のデフォルト時間（分）
 
   // Custom field on Salesforce Event to store Zoom Meeting UUID (for deduplication)
-  SALESFORCE_EVENT_ZOOM_UUID_FIELD: z.string().default("ZoommeetingId__c"), // EventのZoom UUIDカスタム項目名
+  SALESFORCE_EVENT_ZOOM_UUID_FIELD: z.string().default("ZoomMeetingId__c"), // EventのZoom UUIDカスタム項目名
 
   // Custom field on Salesforce Event to store Zoom Meeting Summary
   SALESFORCE_EVENT_MEETING_SUMMARY_FIELD: z
     .string()
-    .default("ZoomMeetingSummary__c")
-    .optional(), // EventのZoomミーティングサマリーカスタム項目名
+    .default("Description")
+    .optional(), // EventのミーティングサマリーはEvent.Descriptionに保存
 });
 
 export const env = envSchema.parse(process.env);
