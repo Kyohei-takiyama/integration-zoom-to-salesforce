@@ -92,7 +92,7 @@ export async function handleZoomWebhook(c: Context) {
     );
   }
 
-  const meetingUuid = payload?.payload?.object?.uuid;
+  const meetingId = payload?.payload?.object?.uuid;
   const meetingTopic = payload?.payload?.object?.topic;
   const recordingFiles = payload?.payload?.object?.recording_files;
   const shareUrl = payload?.payload?.object?.share_url;
@@ -100,7 +100,7 @@ export async function handleZoomWebhook(c: Context) {
   const startTime = payload?.payload?.object?.start_time; // ISO 8601形式 (UTC)
   const duration = payload?.payload?.object?.duration; // 分単位
 
-  if (!meetingUuid || !meetingTopic) {
+  if (!meetingId || !meetingTopic) {
     console.error("Invalid payload: Missing meeting UUID or topic.", payload);
     return c.json(
       { message: "Invalid payload structure (UUID or Topic missing)" },
@@ -109,15 +109,15 @@ export async function handleZoomWebhook(c: Context) {
   }
 
   console.log(
-    `Processing recording for Meeting UUID: ${meetingUuid}, Topic: "${meetingTopic}"`
+    `Processing recording for Meeting UUID: ${meetingId}, Topic: "${meetingTopic}"`
   );
 
   // 3. 重複チェック (同じZoom UUIDのEventが既に作成されていないか)
   if (env.SALESFORCE_EVENT_ZOOM_UUID_FIELD) {
-    const existingEventId = await findEventByZoomUuid(meetingUuid);
+    const existingEventId = await findEventByZoomUuid(meetingId);
     if (existingEventId) {
       console.log(
-        `Event for Zoom meeting ${meetingUuid} already exists (ID: ${existingEventId}). Skipping creation.`
+        `Event for Zoom meeting ${meetingId} already exists (ID: ${existingEventId}). Skipping creation.`
       );
       // すでに処理済みなので成功として返す
       return c.json(
@@ -168,7 +168,7 @@ export async function handleZoomWebhook(c: Context) {
       console.log("Transcript successfully processed.");
     } catch (error: any) {
       console.error(
-        `Failed to download or process transcript for meeting ${meetingUuid}:`,
+        `Failed to download or process transcript for meeting ${meetingId}:`,
         error.message
       );
       transcriptText = "文字起こしの取得中にエラーが発生しました。";
@@ -183,7 +183,7 @@ export async function handleZoomWebhook(c: Context) {
 
   if (!startDateTimeIso || !endDateTimeIso) {
     console.error(
-      `Could not determine valid Start/End DateTime for meeting ${meetingUuid}. Start='${startTime}', Duration='${duration}'. Skipping Event creation.`
+      `Could not determine valid Start/End DateTime for meeting ${meetingId}. Start='${startTime}', Duration='${duration}'. Skipping Event creation.`
     );
     return c.json({ message: "Invalid start or end time for event" }, 400); // 日時が不正なら作成不可
   }
@@ -204,7 +204,7 @@ export async function handleZoomWebhook(c: Context) {
 
   // Zoom UUIDをカスタム項目に設定 (重複防止用)
   if (env.SALESFORCE_EVENT_ZOOM_UUID_FIELD) {
-    eventData[env.SALESFORCE_EVENT_ZOOM_UUID_FIELD] = meetingUuid;
+    eventData[env.SALESFORCE_EVENT_ZOOM_UUID_FIELD] = meetingId;
   }
 
   // 8. Salesforce Eventの作成

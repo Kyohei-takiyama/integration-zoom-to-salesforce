@@ -1,6 +1,11 @@
 // src/routes/api.ts
 import { Hono } from "hono";
-import { getMeetingDetails, getMeetingSummary } from "../services/zoomService";
+import {
+  getMeetingDetails,
+  getMeetingSummary,
+  getUserMeetings,
+  getPastMeetingDetails,
+} from "../services/zoomService";
 
 const apiRouter = new Hono();
 
@@ -15,8 +20,10 @@ apiRouter.get("/meetings/:meetingUuid", async (c) => {
       return c.json({ error: "Meeting UUID is required" }, 400);
     }
 
+    // Meeting UUID を URL エンコードする
+    const encodedMeetingUuid = encodeURIComponent(meetingUuid);
     console.log(`Fetching meeting details for UUID: ${meetingUuid}`);
-    const meetingDetails = await getMeetingDetails(meetingUuid);
+    const meetingDetails = await getMeetingDetails(encodedMeetingUuid);
     return c.json(meetingDetails);
   } catch (error: any) {
     console.error("Error fetching meeting details:", error);
@@ -38,13 +45,94 @@ apiRouter.get("/meetings/:meetingUuid/summary", async (c) => {
       return c.json({ error: "Meeting UUID is required" }, 400);
     }
 
-    console.log(`Fetching meeting summary for UUID: ${meetingUuid}`);
-    const meetingSummary = await getMeetingSummary(meetingUuid);
+    // Meeting UUID を URL エンコードする
+    const encodedMeetingUuid = encodeURIComponent(meetingUuid);
+    console.log(`Encoded Meeting UUID: ${encodedMeetingUuid}`);
+    const meetingSummary = await getMeetingSummary(encodedMeetingUuid);
     return c.json(meetingSummary);
   } catch (error: any) {
     console.error("Error fetching meeting summary:", error);
     return c.json(
       { error: error.message || "Failed to fetch meeting summary" },
+      500
+    );
+  }
+});
+
+/**
+ * ユーザーのミーティング一覧を取得するエンドポイント
+ * GET /api/users/:userId/meetings
+ * クエリパラメータ:
+ * - type: ミーティングタイプ（'scheduled'、'live'、'upcoming'など）
+ * - pageSize: 1ページあたりの結果数
+ * - pageNumber: ページ番号
+ */
+apiRouter.get("/users/:userId/meetings", async (c) => {
+  try {
+    const userId = c.req.param("userId") || "me";
+    const type = c.req.query("type") || "scheduled";
+    const pageSize = parseInt(c.req.query("pageSize") || "30", 10);
+    const pageNumber = parseInt(c.req.query("pageNumber") || "1", 10);
+
+    console.log(`Fetching meetings for user: ${userId}, type: ${type}`);
+    const meetings = await getUserMeetings(userId, type, pageSize, pageNumber);
+    return c.json(meetings);
+  } catch (error: any) {
+    console.error("Error fetching user meetings:", error);
+    return c.json(
+      { error: error.message || "Failed to fetch user meetings" },
+      500
+    );
+  }
+});
+
+/**
+ * 現在認証されているユーザーのミーティング一覧を取得するエンドポイント（簡易版）
+ * GET /api/meetings
+ * クエリパラメータ:
+ * - type: ミーティングタイプ（'scheduled'、'live'、'upcoming'など）
+ * - pageSize: 1ページあたりの結果数
+ * - pageNumber: ページ番号
+ */
+apiRouter.get("/meetings", async (c) => {
+  try {
+    const type = c.req.query("type") || "scheduled";
+    const pageSize = parseInt(c.req.query("pageSize") || "30", 10);
+    const pageNumber = parseInt(c.req.query("pageNumber") || "1", 10);
+
+    console.log(`Fetching meetings for current user, type: ${type}`);
+    const meetings = await getUserMeetings("me", type, pageSize, pageNumber);
+    return c.json(meetings);
+  } catch (error: any) {
+    console.error("Error fetching user meetings:", error);
+    return c.json(
+      { error: error.message || "Failed to fetch user meetings" },
+      500
+    );
+  }
+});
+
+/**
+ * 過去のミーティングの詳細情報を取得するエンドポイント
+ * GET /api/past_meetings/:meetingId
+ *
+ * 注意：
+ * - ミーティングが終了している必要がある
+ * - 1年以上前のミーティングにはアクセスできない
+ */
+apiRouter.get("/past_meetings/:meetingId", async (c) => {
+  try {
+    const meetingId = c.req.param("meetingId");
+    if (!meetingId) {
+      return c.json({ error: "Meeting UUID is required" }, 400);
+    }
+
+    const pastMeetingDetails = await getPastMeetingDetails(meetingId);
+    return c.json(pastMeetingDetails);
+  } catch (error: any) {
+    console.error("Error fetching past meeting details:", error);
+    return c.json(
+      { error: error.message || "Failed to fetch past meeting details" },
       500
     );
   }

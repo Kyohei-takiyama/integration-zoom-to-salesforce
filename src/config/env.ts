@@ -35,7 +35,7 @@ const envSchema = z.object({
   SALESFORCE_EVENT_DURATION_MINUTES: z.coerce.number().default(60), // Zoomのdurationがない場合のデフォルト時間（分）
 
   // Custom field on Salesforce Event to store Zoom Meeting UUID (for deduplication)
-  SALESFORCE_EVENT_ZOOM_UUID_FIELD: z.string().default("ZoomMeetingUUID__c"), // EventのZoom UUIDカスタム項目名
+  SALESFORCE_EVENT_ZOOM_UUID_FIELD: z.string().default("ZoommeetingId__c"), // EventのZoom UUIDカスタム項目名
 });
 
 export const env = envSchema.parse(process.env);

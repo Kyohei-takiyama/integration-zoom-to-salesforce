@@ -58,11 +58,11 @@ export async function findOpportunityById(
 
 /**
  * Zoom Meeting UUID をもとに Salesforce Event レコードを検索する (重複チェック用)
- * @param zoomMeetingUuid ZoomのミーティングUUID
+ * @param zoommeetingId ZoomのミーティングUUID
  * @returns 見つかったEventのID、見つからなければnull
  */
 export async function findEventByZoomUuid(
-  zoomMeetingUuid: string
+  zoommeetingId: string
 ): Promise<string | null> {
   const conn = await getSalesforceConnection();
   const zoomUuidField = env.SALESFORCE_EVENT_ZOOM_UUID_FIELD;
@@ -75,7 +75,7 @@ export async function findEventByZoomUuid(
   }
 
   try {
-    const escapedZoomUuid = zoomMeetingUuid.replace(/'/g, "\\'");
+    const escapedZoomUuid = zoommeetingId.replace(/'/g, "\\'");
     interface EventQueryResult {
       Id: string;
     }
@@ -86,7 +86,7 @@ export async function findEventByZoomUuid(
     if (result.totalSize > 0 && result.records.length > 0) {
       const eventId = result.records[0].Id;
       console.log(
-        `Existing Salesforce Event found with Zoom UUID ${zoomMeetingUuid}: ${eventId}`
+        `Existing Salesforce Event found with Zoom UUID ${zoommeetingId}: ${eventId}`
       );
       return eventId;
     } else {
@@ -94,7 +94,7 @@ export async function findEventByZoomUuid(
     }
   } catch (err: any) {
     console.error(
-      `Error finding Salesforce Event by Zoom UUID ${zoomMeetingUuid} for deduplication:`,
+      `Error finding Salesforce Event by Zoom UUID ${zoommeetingId} for deduplication:`,
       err.message
     );
     return null;

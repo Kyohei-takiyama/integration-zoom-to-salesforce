@@ -207,3 +207,12 @@ export interface ZoomMeetingSummary {
     summary_text: string;
   };
 }
+
+// Zoom API ユーザーミーティング一覧レスポンス
+export interface ZoomUserMeetingsResponse {
+  page_count: number;
+  page_number: number;
+  page_size: number;
+  total_records: number;
+  meetings: ZoomMeeting[];
+}
