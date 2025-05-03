@@ -3,10 +3,7 @@ import { Context } from "hono";
 import { env } from "../config/env";
 import { handleZoomWebhookValidation } from "../lib/verifyZoomWebhook";
 import { getSalesforceConnection } from "../lib/salesforceAuth";
-import {
-  downloadTranscriptText,
-  getMeetingSummary,
-} from "../services/zoomService";
+import { downloadTranscriptText } from "../services/zoomService";
 import {
   findOpportunityById,
   createSalesforceEvent,
