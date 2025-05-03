@@ -96,10 +96,31 @@ export async function handleZoomWebhook(c: Context) {
     );
   }
 
-  const meetingUuid = payload?.payload?.object?.uuid;
-  const meetingTopic = payload?.payload?.object?.topic;
-  const startTime = payload?.payload?.object?.start_time; // ISO 8601形式 (UTC)
-  const duration = payload?.payload?.object?.duration; // 分単位
+  // イベントタイプに応じて適切なフィールドを取得
+  let meetingUuid, meetingTopic, startTime, duration;
+
+  if (eventType === "recording.completed") {
+    meetingUuid = payload?.payload?.object?.uuid;
+    meetingTopic = payload?.payload?.object?.topic;
+    startTime = payload?.payload?.object?.start_time; // ISO 8601形式 (UTC)
+    duration = payload?.payload?.object?.duration; // 分単位
+  } else if (eventType === "meeting.summary_completed") {
+    meetingUuid = payload?.payload?.object?.meeting_uuid;
+    meetingTopic = payload?.payload?.object?.meeting_topic;
+    startTime = payload?.payload?.object?.meeting_start_time; // ISO 8601形式 (UTC)
+
+    // 終了時間から開始時間を引いて期間（分）を計算
+    if (
+      payload?.payload?.object?.meeting_start_time &&
+      payload?.payload?.object?.meeting_end_time
+    ) {
+      const startDate = new Date(payload.payload.object.meeting_start_time);
+      const endDate = new Date(payload.payload.object.meeting_end_time);
+      duration = Math.round(
+        (endDate.getTime() - startDate.getTime()) / (60 * 1000)
+      ); // ミリ秒を分に変換
+    }
+  }
 
   if (!meetingUuid || !meetingTopic) {
     console.error("Invalid payload: Missing meeting UUID or topic.", payload);
@@ -268,11 +289,34 @@ export async function handleZoomWebhook(c: Context) {
     }
 
     try {
-      // ミーティングサマリーを取得
-      const encodedMeetingUuid = encodeURIComponent(meetingUuid);
-      const meetingSummaryData = await getMeetingSummary(encodedMeetingUuid);
+      // ペイロードからミーティングサマリーを取得
+      const summaryContent = payload?.payload?.object?.summary_content || "";
+      const summaryOverview = payload?.payload?.object?.summary_overview || "";
+
+      // サマリーの詳細情報を整形
+      let summaryDetailsText = "";
+      const summaryDetails = payload?.payload?.object?.summary_details || [];
+      if (summaryDetails.length > 0) {
+        summaryDetailsText = "\n\n## 詳細情報:\n";
+        summaryDetails.forEach((detail: { label: string; summary: string }) => {
+          summaryDetailsText += `\n### ${detail.label}\n${detail.summary}\n`;
+        });
+      }
+
+      // 次のステップ情報を整形
+      let nextStepsText = "";
+      const nextSteps = payload?.payload?.object?.next_steps || [];
+      if (nextSteps.length > 0) {
+        nextStepsText = "\n\n## 次のステップ:\n";
+        nextSteps.forEach((step: string) => {
+          nextStepsText += `\n- ${step}`;
+        });
+      }
+
+      // 完全なサマリーテキストを作成
       const summaryText =
-        meetingSummaryData?.summary?.summary_text ||
+        summaryContent ||
+        `${summaryOverview}${summaryDetailsText}${nextStepsText}` ||
         "ミーティングサマリーを取得できませんでした。";
 
       // Salesforceのイベントを更新
