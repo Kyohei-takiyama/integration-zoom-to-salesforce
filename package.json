@@ -2,10 +2,11 @@
   "name": "integration-zoom-to-salesforce",
   "version": "1.0.0",
   "description": "Zoom WebhookとSalesforce APIを連携するアプリケーション",
+  "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "dev": "bun run --watch src/index.ts",
-    "build": "bun build src/index.ts --outdir dist",
+    "build": "bun build ./src/index.ts --outdir ./dist --target=node",
     "start": "bun run dist/index.js",
     "typecheck": "tsc --noEmit"
   },
