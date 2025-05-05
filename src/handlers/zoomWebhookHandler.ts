@@ -334,7 +334,6 @@ export async function handleZoomWebhook(c: Context) {
         Description: description,
       };
 
-      // ミーティングサマリー用のカスタム項目がある場合は設定
       if (env.SALESFORCE_EVENT_MEETING_SUMMARY_FIELD) {
         updateData[env.SALESFORCE_EVENT_MEETING_SUMMARY_FIELD] =
           summaryText.substring(0, 32000);

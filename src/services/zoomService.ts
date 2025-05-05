@@ -252,3 +252,111 @@ export async function getPastMeetingDetails(meetingUuid: string): Promise<any> {
     );
   }
 }
+
+/**
+ * ユーザー一覧を取得する
+ * @param status ユーザーのステータス（'active'、'inactive'、'pending'）
+ * @param pageSize 1ページあたりの結果数
+ * @param pageNumber ページ番号
+ * @param nextPageToken 次ページのトークン（ページネーション用）
+ * @returns ユーザー一覧
+ */
+export async function getUsers(
+  status: string = "active",
+  pageSize: number = 30,
+  pageNumber: number = 1,
+  nextPageToken?: string
+): Promise<any> {
+  const accessToken = await getZoomAccessToken();
+  let url = `${ZOOM_API_BASE_URL}/users?status=${status}&page_size=${pageSize}&page_number=${pageNumber}`;
+
+  if (nextPageToken) {
+    url += `&next_page_token=${nextPageToken}`;
+  }
+
+  try {
+    const response = await axios.get(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      `Failed to get users:`,
+      error.response?.status,
+      error.response?.data
+    );
+    throw new Error(
+      `Failed to get users: ${error.response?.status || error.message}`
+    );
+  }
+}
+
+/**
+ * 特定のユーザー情報を取得する
+ * @param userId ユーザーID
+ * @returns ユーザー情報
+ */
+export async function getUser(userId: string): Promise<any> {
+  const accessToken = await getZoomAccessToken();
+  const url = `${ZOOM_API_BASE_URL}/users/${userId}`;
+
+  try {
+    const response = await axios.get(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      `Failed to get user ${userId}:`,
+      error.response?.status,
+      error.response?.data
+    );
+    throw new Error(
+      `Failed to get user: ${error.response?.status || error.message}`
+    );
+  }
+}
+
+/**
+ * 過去のミーティングのインスタンス一覧を取得する
+ * 注意：
+ * - ミーティングが終了している必要がある
+ * - 1年以上前のミーティングにはアクセスできない
+ *
+ * @param meetingId ミーティングID
+ * @returns 過去のミーティングのインスタンス一覧
+ */
+export async function getPastMeetingInstances(meetingId: string): Promise<any> {
+  const accessToken = await getZoomAccessToken();
+  const url = `${ZOOM_API_BASE_URL}/past_meetings/${meetingId}/instances`;
+
+  try {
+    const response = await axios.get(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      `Failed to get past meeting instances for ${meetingId}:`,
+      error.response?.status,
+      error.response?.data
+    );
+    throw new Error(
+      `Failed to get past meeting instances: ${
+        error.response?.status || error.message
+      }`
+    );
+  }
+}

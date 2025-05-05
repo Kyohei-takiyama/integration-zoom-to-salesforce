@@ -282,3 +282,57 @@ export interface ZoomUserMeetingsResponse {
   total_records: number;
   meetings: ZoomMeeting[];
 }
+
+// Zoom API ユーザーのカスタム属性
+export interface ZoomUserCustomAttribute {
+  key: string;
+  name: string;
+  value: string;
+}
+
+// Zoom API ユーザー情報
+export interface ZoomUser {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  type: number;
+  status: string;
+  pmi: number;
+  timezone: string;
+  dept: string;
+  created_at: string;
+  user_created_at?: string;
+  last_login_time: string;
+  role_id: string;
+  verified: number;
+  host_key?: string;
+  employee_unique_id?: string;
+  group_ids?: string[];
+  im_group_ids?: string[];
+  last_client_version?: string;
+  plan_united_type?: string;
+  display_name?: string;
+  custom_attributes?: ZoomUserCustomAttribute[];
+}
+
+// Zoom API ユーザー一覧レスポンス
+export interface ZoomUsersResponse {
+  next_page_token?: string;
+  page_count: number;
+  page_number: number;
+  page_size: number;
+  total_records: number;
+  users: ZoomUser[];
+}
+
+// Zoom API 過去のミーティングインスタンス情報
+export interface ZoomPastMeetingInstance {
+  start_time: string;
+  uuid: string;
+}
+
+// Zoom API 過去のミーティングインスタンス一覧レスポンス
+export interface ZoomPastMeetingInstancesResponse {
+  meetings: ZoomPastMeetingInstance[];
+}
