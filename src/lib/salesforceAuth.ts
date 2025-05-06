@@ -1,5 +1,5 @@
 // src/lib/salesforceAuth.ts
-import { env } from "../config/env";
+import { getEnv } from "../config/env";
 import { Connection } from "jsforce";
 import axios from "axios";
 
@@ -7,6 +7,8 @@ let sfConnection: Connection | null = null;
 let tokenExpiresAt: number | null = null;
 let currentAccessToken: string | null = null;
 let currentInstanceUrl: string | null = null;
+
+const env = getEnv();
 
 /**
  * Salesforceのアクセストークン情報

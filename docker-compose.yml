@@ -1,21 +1,42 @@
+# ./docker-compose.yml
 services:
   app:
     build:
       context: .
-      dockerfile: ./local.Dockerfile
+      dockerfile: ./local.Dockerfile # local.Dockerfile を指定
     ports:
-      - "3000:3000"
+      # ホスト側のポートを環境変数 PORT から取得、なければ 3000
+      # コンテナ側のポートは .env や src/config/env.ts で定義される PORT (デフォルト 3000)
+      - "${PORT:-3000}:3000"
     volumes:
+      # ホストの現在のディレクトリをコンテナの /app にマウント
+      # これでホストでのコード変更がコンテナに反映される
       - .:/app
+      # node_modules ボリューム:
+      # Dockerfile内で bun install した node_modules を保護し、
+      # ホストの node_modules で上書きされるのを防ぐ
       - node_modules:/app/node_modules
+      # ローカルでSSMを使う場合にホストのAWS認証情報をマウント (読み取り専用)
+      # 必要に応じてコメント解除し、profile名を指定
+      # - ~/.aws:/root/.aws:ro
     environment:
-      - PORT=3000
-      - HOST=0.0.0.0
-      - NODE_ENV=development
-      # 環境変数は.envファイルから読み込まれます
+      # コンテナ内で Bun サーバーが使用するポート番号
+      # .env ファイルの値で上書きされる可能性がある
+      PORT: 3000
+      # Bunが外部からの接続を受け付けるように 0.0.0.0 を指定
+      # Bun v1.x の `bun run` はこれを自動で解釈してくれるはず
+      # HOST: 0.0.0.0 # 明示的に指定しても良い
+      NODE_ENV: development # 開発モードを指定
+      # SSMを使う場合に必要な環境変数 (例)
+      # AWS_PROFILE: your-aws-profile # ~/.aws をマウントする場合
+      # SSM_PARAMETER_PREFIX: /zoom-salesforce-app/development/
+      # LOAD_FROM_SSM: true # .envに書くか、ここに書く
     env_file:
-      - .env
+      - .env # .env ファイルを読み込む (environment より優先されることが多い)
+    # コンテナ起動時に実行するコマンド
+    # package.json の "dev" スクリプト (`bun run --watch --hot src/index.ts`) を実行
     command: bun run dev
 
+# node_modules を永続化するための名前付きボリューム
 volumes:
   node_modules:

@@ -1,42 +1,31 @@
-# ビルドステージ
+# Stage 1: ビルドステージ (Bunを使用)
 FROM oven/bun:1 as builder
 
 WORKDIR /app
 
-# 依存関係ファイルをコピー
-COPY package.json bun.lock* package-lock.json* ./
+COPY package.json bun.lock ./
+# ロックファイルに基づいて依存関係をインストール (CI/CD向け)
+# ローカル開発でロックファイルがない場合は `bun install` でも可
+RUN bun install --frozen-lockfile
 
-# 依存関係をインストール
-RUN bun install
+# ソースコードと設定ファイルをコピー
+COPY src ./src
+COPY tsconfig.json ./
 
-# ソースコードをコピー
-COPY . .
+# TypeScriptをNode.jsランタイム用のJavaScriptにビルド
+# --target=node を指定し、依存関係もバンドルする (デフォルト)
+RUN bun build ./src/index.ts --outdir ./dist --target=node
 
-# TypeScriptをビルド
-RUN bun run build
+# ---
 
-# 実行ステージ
-FROM public.ecr.aws/lambda/nodejs:18
+FROM public.ecr.aws/lambda/nodejs:20
 
-# 必要なパッケージをインストール
-RUN yum install -y unzip
-
-# Bunをインストール
-RUN curl -fsSL https://bun.sh/install | bash
-ENV PATH="/root/.bun/bin:${PATH}"
-
+# Lambda関数コードの配置場所 (Lambda環境変数)
 WORKDIR ${LAMBDA_TASK_ROOT}
 
-# ビルドステージから必要なファイルをコピー
+# ビルドステージから生成されたJavaScriptコードのみをコピー
+# dist ディレクトリに必要なものがすべてバンドルされている想定
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./
 
-# Lambda用のエントリーポイントを作成（ESモジュール形式）
-COPY docker/lambda.mjs ./
-
-# AWS SDKをインストール（Parameter Storeからの環境変数取得用）
-RUN npm install aws-sdk
-
-# Lambda関数ハンドラーを設定（.mjsファイルを使用）
-CMD [ "lambda.mjs.handler" ]
+# Lambda関数ハンドラを指定
+CMD [ "dist/index.handler" ]

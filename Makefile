@@ -8,7 +8,7 @@ IMAGE_TAG    = latest
 AWS_ACCOUNT_ID := $(shell aws sts get-caller-identity --query Account --output text)
 # ECRリポジトリURLを構築
 # (Terraformで定義したリポジトリ名と一致させること)
-ECR_REPO_URL := $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(APP_NAME)-repo
+ECR_REPO_URL := $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(APP_NAME)
 
 # --- ターゲット ---
 
@@ -25,7 +25,7 @@ build-ts: install
 # Dockerイメージをビルド
 build: build-ts
 	@echo ">>> Building Docker image [$(ECR_REPO_URL):$(IMAGE_TAG)]..."
-	docker build -t $(ECR_REPO_URL):$(IMAGE_TAG) .
+	docker build --platform=linux/amd64 -t $(ECR_REPO_URL):$(IMAGE_TAG) .
 
 # AWS ECRへログイン
 login:

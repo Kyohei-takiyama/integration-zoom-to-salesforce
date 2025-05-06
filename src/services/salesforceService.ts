@@ -1,6 +1,8 @@
 import { SaveResult, SaveError } from "jsforce";
 import { getSalesforceConnection } from "../lib/salesforceAuth";
-import { env } from "../config/env";
+import { getEnv } from "../config/env";
+
+const env = getEnv();
 
 // Opportunity インターフェース (変更なし)
 interface Opportunity {
